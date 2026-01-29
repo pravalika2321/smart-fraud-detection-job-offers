@@ -68,7 +68,6 @@ const InputModule: React.FC<InputModuleProps> = ({ onAnalyze }) => {
       
       setLoadingFile(true);
       try {
-        // For production, we'd use a lib for PDF/DOCX, but for now we read text content
         const content = await readFileContent(selectedFile);
         finalData = {
           title: selectedFile.name,
@@ -91,17 +90,25 @@ const InputModule: React.FC<InputModuleProps> = ({ onAnalyze }) => {
     onAnalyze(finalData);
   };
 
+  // Helper to get dynamic input classes
+  const getInputClass = (value: string) => {
+    const base = "w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300 font-medium text-slate-200 placeholder-slate-500";
+    // Change background if value exists
+    const bgColor = value.length > 0 ? "bg-slate-700 border-blue-900/30" : "bg-slate-800 border-slate-700";
+    return `${base} ${bgColor}`;
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-      <div className="flex border-b">
+      <div className="flex border-b bg-slate-50">
         {(['manual', 'email', 'file'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-4 text-sm font-semibold transition-colors ${
+            className={`flex-1 py-4 text-sm font-bold transition-colors ${
               activeTab === tab 
-                ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' 
-                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                ? 'bg-white text-blue-600 border-b-2 border-blue-600' 
+                : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
             }`}
           >
             {tab === 'manual' && <><i className="fas fa-edit mr-2"></i> Manual Input</>}
@@ -113,103 +120,116 @@ const InputModule: React.FC<InputModuleProps> = ({ onAnalyze }) => {
 
       <form onSubmit={handleSubmit} className="p-8">
         {activeTab === 'manual' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Job Title *</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800 flex items-center">
+                Job Title <span className="text-red-500 ml-1">*</span>
+              </label>
               <input 
                 required
                 name="title"
                 value={formData.title}
                 onChange={handleManualChange}
                 placeholder="e.g. Senior Software Engineer" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.title)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Company Name *</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">
+                Company Name <span className="text-red-500 ml-1">*</span>
+              </label>
               <input 
                 required
                 name="company"
                 value={formData.company}
                 onChange={handleManualChange}
                 placeholder="e.g. Google" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.company)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Salary / Stipend</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Salary / Stipend</label>
               <input 
                 name="salary"
                 value={formData.salary}
                 onChange={handleManualChange}
                 placeholder="e.g. $120,000 / year" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.salary)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Location</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Location</label>
               <input 
                 name="location"
                 value={formData.location}
                 onChange={handleManualChange}
                 placeholder="e.g. New York, NY" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.location)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Recruiter Email</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Recruiter Email</label>
               <input 
                 name="email"
                 value={formData.email}
                 onChange={handleManualChange}
                 placeholder="e.g. hr@company.com" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.email)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Website URL</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-800">Website URL</label>
               <input 
                 name="website"
                 value={formData.website}
                 onChange={handleManualChange}
                 placeholder="e.g. https://company.com" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.website)}
               />
             </div>
-            <div className="md:col-span-2 space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Job Description *</label>
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-sm font-bold text-slate-800">
+                Job Description <span className="text-red-500 ml-1">*</span>
+              </label>
               <textarea 
                 required
                 name="description"
                 value={formData.description}
                 onChange={handleManualChange}
-                rows={4}
+                rows={5}
                 placeholder="Paste the full job description here..." 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className={getInputClass(formData.description)}
               ></textarea>
             </div>
           </div>
         )}
 
         {activeTab === 'email' && (
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700">Recruitment Email Content *</label>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-800">
+              Recruitment Email Content <span className="text-red-500 ml-1">*</span>
+            </label>
             <textarea 
               required
               value={emailContent}
               onChange={(e) => setEmailContent(e.target.value)}
-              rows={10}
+              rows={12}
               placeholder="Paste the entire body of the email you received..." 
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm"
+              className={getInputClass(emailContent)}
             ></textarea>
           </div>
         )}
 
         {activeTab === 'file' && (
-          <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-slate-100 transition cursor-pointer" onClick={() => document.getElementById('fileInput')?.click()}>
-            <i className="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-4"></i>
-            <p className="text-slate-600 font-medium">{selectedFile ? selectedFile.name : 'Click to select a file (PDF, DOCX, TXT)'}</p>
-            <p className="text-xs text-slate-400 mt-2">Max file size: 5MB. Note: PDF/DOCX content extraction is experimental.</p>
+          <div 
+            className={`py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all cursor-pointer ${selectedFile ? 'border-blue-500 bg-blue-50/30' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+            onClick={() => document.getElementById('fileInput')?.click()}
+          >
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors ${selectedFile ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600'}`}>
+              <i className={`fas ${selectedFile ? 'fa-check' : 'fa-cloud-upload-alt'} text-2xl`}></i>
+            </div>
+            <p className="text-slate-800 font-bold text-lg">{selectedFile ? selectedFile.name : 'Click to select a file'}</p>
+            <p className="text-sm text-slate-500 mt-2 px-6 text-center">Accepts PDF, DOCX, and TXT formats (Max 5MB)</p>
             <input 
               id="fileInput"
               type="file" 
@@ -220,13 +240,13 @@ const InputModule: React.FC<InputModuleProps> = ({ onAnalyze }) => {
           </div>
         )}
 
-        <div className="mt-8 flex justify-end">
+        <div className="mt-10 flex justify-end">
           <button 
             type="submit"
             disabled={loadingFile}
-            className={`px-10 py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition transform hover:scale-[1.02] ${loadingFile ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-12 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-xl shadow-blue-200 hover:bg-blue-700 transition transform hover:scale-[1.02] active:scale-95 ${loadingFile ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {loadingFile ? 'Processing File...' : <>Start Fraud Analysis <i className="fas fa-arrow-right ml-2"></i></>}
+            {loadingFile ? 'Processing...' : <>Start Intelligence Check <i className="fas fa-microchip ml-2"></i></>}
           </button>
         </div>
       </form>
