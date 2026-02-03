@@ -13,7 +13,8 @@ export interface JobInputData {
   email: string;
   website: string;
   description: string;
-  sourceType: 'manual' | 'email' | 'file';
+  sourceType: 'manual' | 'email' | 'file' | 'screenshot';
+  screenshot?: string; // Base64 encoded image
 }
 
 export interface AnalysisResult {
@@ -29,4 +30,9 @@ export interface AnalysisResponse {
   data: AnalysisResult | null;
   loading: boolean;
   error: string | null;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }

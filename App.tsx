@@ -8,6 +8,7 @@ import AboutPage from './components/AboutPage';
 import HowItWorks from './components/HowItWorks';
 import ContactUs from './components/ContactUs';
 import Testimonials from './components/Testimonials';
+import SafetyAssistant from './components/SafetyAssistant';
 import { JobInputData, AnalysisResult } from './types';
 import { analyzeJobOffer } from './geminiService';
 
@@ -83,11 +84,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 relative">
       <Navbar currentView={currentView} onNavigate={navigateTo} />
       <main className="flex-grow pt-16">
         {renderView()}
       </main>
+      
+      {/* Floating Chatbot Assistant */}
+      <SafetyAssistant />
+
       <footer className="bg-slate-900 text-slate-400 py-12">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
           <div>

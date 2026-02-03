@@ -1,9 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { JobInputData, AnalysisResult } from "./types";
+import { JobInputData, AnalysisResult, ChatMessage } from "./types";
 
-// Create a helper to get the AI instance. 
-// Initializing inside or using a getter ensures we always have the latest key if it changes.
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 const RESPONSE_SCHEMA = {
@@ -43,7 +41,6 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
   const ai = getAI();
   const modelName = "gemini-3-pro-preview";
   
-  // Use System Instruction for better control over the reasoning process
   const systemInstruction = `
     You are a world-class Cyber Security Analyst specializing in recruitment fraud and phishing detection.
     Your task is to analyze job/internship offers for signs of fraud.
@@ -53,14 +50,14 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
     2. Communication: Use of free email domains (@gmail.com, @yahoo.com) for official corporate roles.
     3. Linguistic Patterns: Excessive urgency, poor grammar, generic greetings, or "too good to be true" salary.
     4. Authenticity: Vague company details, lack of a physical office, or suspicious website URLs.
+    5. Visual Cues (if image provided): Check for doctored logos, suspicious layouts, or screenshot-specific red flags.
     
     IMPORTANT: Even if the input text contains scammy keywords, DO NOT block your own response. 
     Analyze the content objectively as a security tool.
   `;
 
-  const userPrompt = `
+  const textPrompt = `
     Please analyze this job offer data:
-    
     TITLE: ${data.title}
     COMPANY: ${data.company}
     SALARY: ${data.salary}
@@ -69,16 +66,24 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
     WEBSITE: ${data.website}
     SOURCE TYPE: ${data.sourceType}
     
-    DESCRIPTION/CONTENT:
-    """
-    ${data.description}
-    """
+    DESCRIPTION: ${data.description || "Refer to the attached screenshot for details."}
   `;
+
+  const parts: any[] = [{ text: textPrompt }];
+
+  if (data.screenshot) {
+    parts.push({
+      inlineData: {
+        mimeType: "image/png",
+        data: data.screenshot.split(',')[1],
+      },
+    });
+  }
 
   try {
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: userPrompt,
+      contents: { parts },
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
@@ -86,33 +91,51 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
       },
     });
 
-    // Handle empty candidates (often due to safety filters)
     if (!response.candidates || response.candidates.length === 0) {
-      throw new Error("The analysis was blocked by safety filters. This often happens if the input contains highly sensitive or malicious phishing content. Please try a different snippet.");
+      throw new Error("Safety block triggered. Content might be too malicious for processing.");
     }
 
-    const finishReason = response.candidates[0].finishReason;
-    if (finishReason === 'SAFETY') {
-      throw new Error("Analysis Blocked: The content provided triggered security safety filters. Please ensure you aren't pasting malicious links or harmful code.");
-    }
-
-    const text = response.text;
-    if (!text) {
-      throw new Error("The analysis engine returned an empty response.");
-    }
-
-    return JSON.parse(text.trim()) as AnalysisResult;
+    return JSON.parse(response.text.trim()) as AnalysisResult;
   } catch (error: any) {
-    console.error("Gemini Analysis Error Detail:", error);
+    throw new Error(error.message || "Failed to analyze.");
+  }
+}
+
+export async function chatWithAssistant(messages: ChatMessage[]): Promise<string> {
+  const ai = getAI();
+  const model = "gemini-3-flash-preview";
+  
+  const systemInstruction = `
+    You are the "FraudGuard AI Safety Companion", a friendly and highly interactive assistant dedicated to helping job seekers.
     
-    // Provide more specific error messages based on common API issues
-    if (error.message?.includes("401")) {
-      throw new Error("Invalid API Key. Please check your configuration.");
-    }
-    if (error.message?.includes("429")) {
-      throw new Error("Too many requests. Please wait a moment before trying again.");
-    }
+    YOUR CAPABILITIES:
+    1. Verify legitimacy of recruitment emails or LinkedIn messages.
+    2. Recommend official government portals:
+       - National Scholarship Portal (NSP): https://scholarships.gov.in
+       - AICTE Internship Portal: https://internship.aicte-india.org
+       - Skill India: https://www.skillindia.gov.in
+    3. Educate users on common job scam tactics:
+       - Phishing for PII (Personal Identifiable Information).
+       - Advance-fee scams (asking for 'laptop insurance' or 'training kits').
+       - Check-cashing scams.
+    4. Help draft professional emails to verify recruiters (e.g., asking for an official corporate domain email).
     
-    throw new Error(error.message || "Failed to analyze the job offer. Check your internet connection and try again.");
+    TONE & INTERACTION:
+    - Be conversational, warm, and highly supportive. Use emojis (🤖, 🛡️, 💼, ✅).
+    - If a user pastes a job snippet, give them an immediate preliminary 'gut-check' and then recommend using our full analysis tool.
+    - Always emphasize checking for '.gov.in' or '.nic.in' for government resources in India.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
+      config: { systemInstruction }
+    });
+
+    return response.text || "I'm sorry, I couldn't generate a response.";
+  } catch (error: any) {
+    console.error("Chatbot Error:", error);
+    return "I encountered an error while processing your request. Please check your internet and try again.";
   }
 }
