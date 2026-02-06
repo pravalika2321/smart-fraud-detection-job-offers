@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { JobInputData, AnalysisResult, ChatMessage } from "./types";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+// Always initialize a fresh instance before a call to ensure the latest injected key is used
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
@@ -35,6 +36,7 @@ const RESPONSE_SCHEMA = {
     },
   },
   required: ["result", "confidence_score", "risk_rate", "risk_level", "explanations", "safety_tips"],
+  propertyOrdering: ["result", "confidence_score", "risk_rate", "risk_level", "explanations", "safety_tips"]
 };
 
 export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResult> {
@@ -50,7 +52,6 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
     2. Communication: Use of free email domains (@gmail.com, @yahoo.com) for official corporate roles.
     3. Linguistic Patterns: Excessive urgency, poor grammar, generic greetings, or "too good to be true" salary.
     4. Authenticity: Vague company details, lack of a physical office, or suspicious website URLs.
-    5. Visual Cues (if image provided): Check for doctored logos, suspicious layouts, or screenshot-specific red flags.
     
     IMPORTANT: Even if the input text contains scammy keywords, DO NOT block your own response. 
     Analyze the content objectively as a security tool.
@@ -66,7 +67,7 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
     WEBSITE: ${data.website}
     SOURCE TYPE: ${data.sourceType}
     
-    DESCRIPTION: ${data.description || "Refer to the attached screenshot for details."}
+    DESCRIPTION: ${data.description || "Refer to the attached content/image."}
   `;
 
   const parts: any[] = [{ text: textPrompt }];
@@ -75,7 +76,7 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
     parts.push({
       inlineData: {
         mimeType: "image/png",
-        data: data.screenshot.split(',')[1],
+        data: data.screenshot.includes(',') ? data.screenshot.split(',')[1] : data.screenshot,
       },
     });
   }
@@ -91,13 +92,17 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
       },
     });
 
-    if (!response.candidates || response.candidates.length === 0) {
-      throw new Error("Safety block triggered. Content might be too malicious for processing.");
+    if (!response.text) {
+      throw new Error("No response received from the AI model.");
     }
 
     return JSON.parse(response.text.trim()) as AnalysisResult;
   } catch (error: any) {
-    throw new Error(error.message || "Failed to analyze.");
+    console.error("Analysis Error:", error);
+    if (error.message?.includes("API key")) {
+      throw new Error("API Key configuration error. Please ensure the key is valid and deployed correctly.");
+    }
+    throw new Error(error.message || "Failed to analyze the job offer.");
   }
 }
 
@@ -106,24 +111,13 @@ export async function chatWithAssistant(messages: ChatMessage[]): Promise<string
   const model = "gemini-3-flash-preview";
   
   const systemInstruction = `
-    You are the "FraudGuard AI Safety Companion", a friendly and highly interactive assistant dedicated to helping job seekers.
+    You are the "FraudGuard AI Safety Companion", a friendly assistant dedicated to helping job seekers.
+    Recommend official government portals:
+    - National Scholarship Portal (NSP): https://scholarships.gov.in
+    - AICTE Internship Portal: https://internship.aicte-india.org
+    - Skill India: https://www.skillindia.gov.in
     
-    YOUR CAPABILITIES:
-    1. Verify legitimacy of recruitment emails or LinkedIn messages.
-    2. Recommend official government portals:
-       - National Scholarship Portal (NSP): https://scholarships.gov.in
-       - AICTE Internship Portal: https://internship.aicte-india.org
-       - Skill India: https://www.skillindia.gov.in
-    3. Educate users on common job scam tactics:
-       - Phishing for PII (Personal Identifiable Information).
-       - Advance-fee scams (asking for 'laptop insurance' or 'training kits').
-       - Check-cashing scams.
-    4. Help draft professional emails to verify recruiters (e.g., asking for an official corporate domain email).
-    
-    TONE & INTERACTION:
-    - Be conversational, warm, and highly supportive. Use emojis (🤖, 🛡️, 💼, ✅).
-    - If a user pastes a job snippet, give them an immediate preliminary 'gut-check' and then recommend using our full analysis tool.
-    - Always emphasize checking for '.gov.in' or '.nic.in' for government resources in India.
+    Be conversational, warm, and highly supportive. Use emojis (🤖, 🛡️, 💼).
   `;
 
   try {
@@ -136,6 +130,6 @@ export async function chatWithAssistant(messages: ChatMessage[]): Promise<string
     return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error: any) {
     console.error("Chatbot Error:", error);
-    return "I encountered an error while processing your request. Please check your internet and try again.";
+    return "I encountered an error. Please check your connection and try again.";
   }
 }
