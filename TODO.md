@@ -1,0 +1,3 @@
+- [x] Create .env file with VITE_API_KEY
+- [x] Update geminiService.ts to use import.meta.env.VITE_API_KEY
+- [x] Update vite.config.ts to remove unnecessary define block
