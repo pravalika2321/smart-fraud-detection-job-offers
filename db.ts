@@ -10,7 +10,6 @@ export const db = {
   getUsers: (): User[] => {
     const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
     const history = db.getHistory();
-    // Dynamically calculate analyses count for the dashboard
     return users.map((u: User) => ({
       ...u,
       analyses_count: history.filter(h => h.userId === u.id).length
@@ -31,7 +30,6 @@ export const db = {
   deleteUser: (userId: string) => {
     const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]').filter((u: User) => u.id !== userId);
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    // Cascade delete history
     const history = db.getHistory().filter(h => h.userId !== userId);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   },
@@ -79,7 +77,6 @@ export const db = {
     const users = db.getUsers();
     const fakeJobs = history.filter(h => h.prediction === 'Fake Job').length;
     
-    // Growth Trend Simulation
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -111,16 +108,49 @@ export const db = {
   }
 };
 
-// Seed Admin Account
-const existingUsers = db.getUsers();
-if (!existingUsers.some(u => u.username === 'admin')) {
-  db.saveUser({
-    id: 'admin-001',
-    username: 'admin',
-    email: 'admin@fraudguard.ai',
-    password: 'admin123',
-    is_blocked: false,
-    role: 'admin',
-    created_at: new Date().toISOString()
-  });
-}
+// Seed logic with more robust initial data
+const initDb = () => {
+  const users = db.getUsers();
+  if (!users.some(u => u.username === 'admin')) {
+    db.saveUser({
+      id: 'admin-001',
+      username: 'admin',
+      email: 'admin@fraudguard.ai',
+      password: 'admin123',
+      is_blocked: false,
+      role: 'admin',
+      created_at: new Date(Date.now() - 86400000 * 30).toISOString()
+    });
+  }
+
+  // Seed sample users for UI testing if empty
+  if (users.length < 2) {
+    const sampleUser: User = {
+      id: 'sample-001',
+      username: 'job_seeker_john',
+      email: 'john@example.com',
+      password: 'password123',
+      is_blocked: false,
+      role: 'user',
+      created_at: new Date(Date.now() - 86400000 * 5).toISOString()
+    };
+    db.saveUser(sampleUser);
+    
+    // Seed some history for the chart
+    db.saveHistory({
+      id: 'h-001',
+      userId: 'sample-001',
+      job_title: 'Unreal Remote Developer Role',
+      company_name: 'TechScam Ltd',
+      prediction: 'Fake Job',
+      confidence_score: 98,
+      risk_rate: 95,
+      risk_level: RiskLevel.HIGH,
+      created_at: new Date().toISOString(),
+      explanations: ['Suspicious domain detected', 'Financial fee requested upfront'],
+      safety_tips: ['Do not share personal documents', 'Cease communication immediately']
+    });
+  }
+};
+
+initDb();
