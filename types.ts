@@ -5,6 +5,29 @@ export enum RiskLevel {
   HIGH = 'High'
 }
 
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  is_blocked: boolean;
+  role: 'user' | 'admin';
+  created_at: string;
+}
+
+export interface HistoryRecord {
+  id: string;
+  userId: string;
+  job_title: string;
+  company_name: string;
+  prediction: 'Fake Job' | 'Genuine Job';
+  confidence_score: number;
+  risk_rate: number;
+  risk_level: RiskLevel;
+  created_at: string;
+  explanations: string[];
+  safety_tips: string[];
+}
+
 export interface JobInputData {
   title: string;
   company: string;
@@ -24,12 +47,6 @@ export interface AnalysisResult {
   risk_level: RiskLevel;
   explanations: string[];
   safety_tips: string[];
-}
-
-export interface AnalysisResponse {
-  data: AnalysisResult | null;
-  loading: boolean;
-  error: string | null;
 }
 
 export interface ChatMessage {

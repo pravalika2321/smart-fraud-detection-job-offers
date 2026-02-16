@@ -22,10 +22,10 @@ const HowItWorks: React.FC = () => {
       topImage: null
     },
     {
-      icon: 'fa-shield-check',
+      icon: 'fa-clipboard-check',
       title: 'Get Result',
       desc: 'Receive a risk score and clear evidence-based explanations.',
-      topImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=200&h=200'
+      topImage: 'https://cdn-icons-png.flaticon.com/512/4201/4201971.png'
     }
   ];
 
@@ -33,8 +33,11 @@ const HowItWorks: React.FC = () => {
     <section className="bg-white py-24">
       <div className="max-w-7xl mx-auto px-4">
         <div className="text-center mb-20">
+          <div className="inline-block px-4 py-1.5 mb-6 text-blue-600 font-bold text-xs tracking-widest uppercase bg-blue-50 rounded-full">
+            The Process
+          </div>
           <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-6">Simple 4-Step Protection</h2>
-          <p className="text-slate-500 max-w-2xl mx-auto text-lg">Stop worrying about whether a job is real. Let our AI do the heavy lifting.</p>
+          <p className="text-slate-500 max-w-2xl mx-auto text-lg">Our streamlined workflow ensures you never fall victim to recruitment fraud.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -47,21 +50,21 @@ const HowItWorks: React.FC = () => {
                 {/* Image or Icon Container */}
                 <div className="w-24 h-24 mb-8 relative">
                   {step.topImage ? (
-                    <div className="w-full h-full rounded-3xl overflow-hidden shadow-md border border-slate-100 group-hover:shadow-blue-200 group-hover:scale-110 transition-all duration-300">
+                    <div className="w-full h-full rounded-full overflow-hidden shadow-lg border-[4px] border-blue-50 group-hover:border-blue-200 group-hover:scale-110 transition-all duration-500 flex items-center justify-center bg-white p-5">
                       <img 
                         src={step.topImage} 
                         alt={step.title} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain filter drop-shadow-sm"
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-full bg-blue-50 rounded-3xl flex items-center justify-center group-hover:bg-blue-600 transition-all duration-300">
+                    <div className="w-full h-full bg-blue-50 rounded-3xl flex items-center justify-center group-hover:bg-blue-600 transition-all duration-300 shadow-sm border border-blue-100 group-hover:border-transparent group-hover:shadow-blue-200">
                       <i className={`fas ${step.icon} text-3xl text-blue-600 group-hover:text-white transition-colors`}></i>
                     </div>
                   )}
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">{step.title}</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight group-hover:text-blue-600 transition-colors">{step.title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed max-w-[200px]">{step.desc}</p>
               </div>
             </div>

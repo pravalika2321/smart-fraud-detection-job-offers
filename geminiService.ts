@@ -3,14 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { JobInputData, AnalysisResult, ChatMessage } from "./types";
 
 // Always initialize a fresh instance before a call to ensure the latest injected key is used
-const getAI = () => {
-  const apiKey = import.meta.env.VITE_API_KEY;
-  console.log('API Key loaded:', apiKey ? 'Yes' : 'No');
-  if (!apiKey) {
-    throw new Error('API key not found. Please check your .env file.');
-  }
-  return new GoogleGenAI({ apiKey });
-};
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
@@ -48,7 +41,7 @@ const RESPONSE_SCHEMA = {
 
 export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResult> {
   const ai = getAI();
-  const modelName = "gemini-1.5-pro";
+  const modelName = "gemini-3-pro-preview";
   
   const systemInstruction = `
     You are a world-class Cyber Security Analyst specializing in recruitment fraud and phishing detection.
