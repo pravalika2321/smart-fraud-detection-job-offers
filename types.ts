@@ -13,6 +13,8 @@ export interface User {
   is_blocked: boolean;
   role: 'user' | 'admin';
   created_at: string;
+  last_login?: string;
+  analyses_count?: number;
 }
 
 export interface HistoryRecord {
@@ -30,18 +32,26 @@ export interface HistoryRecord {
 }
 
 export interface ResumeAnalysisResult {
+  ats_score: number;
   match_percentage: number;
-  missing_skills: string[];
+  readability_score: number;
+  keyword_density: number;
   matched_skills: string[];
-  suggestions: string[];
+  missing_skills: string[];
+  suggested_keywords: string[];
+  optimized_summary: string;
+  improved_bullets: string[];
   strength_score: number; // 1-10
-  rating: 'Low' | 'Medium' | 'High';
+  rating: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+  learning_roadmap: { skill: string; resource: string }[];
 }
 
 export interface ResumeHistoryRecord extends ResumeAnalysisResult {
   id: string;
   userId: string;
   job_title: string;
+  resume_filename?: string;
+  resume_format?: string;
   created_at: string;
 }
 

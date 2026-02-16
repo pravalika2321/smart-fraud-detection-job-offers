@@ -24,14 +24,15 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ data, isAdmin = false, onRe
   });
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this record?')) {
+    if (confirm('Permanently delete this analysis record? This action cannot be undone.')) {
       db.deleteHistory(id);
-      onRefresh?.();
+      if (onRefresh) {
+        onRefresh(); // Explicitly notify parent to update state
+      }
     }
   };
 
   const downloadPDF = (item: HistoryRecord) => {
-    // Simplified simulation of PDF download
     const content = `
       FRAUDGUARD ANALYSIS REPORT
       ---------------------------
@@ -53,14 +54,13 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ data, isAdmin = false, onRe
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Report_${item.id}.txt`;
+    a.download = `Report_${item.job_title.replace(/\s+/g, '_')}_${item.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-      {/* Table Headers/Filters */}
       <div className="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row gap-4 justify-between items-center">
         <div className="relative w-full md:w-64">
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -92,15 +92,9 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ data, isAdmin = false, onRe
             <option value="Fake Job">Fake Only</option>
             <option value="Genuine Job">Genuine Only</option>
           </select>
-          {isAdmin && (
-             <button className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition">
-               <i className="fas fa-file-csv mr-2"></i> Export CSV
-             </button>
-          )}
         </div>
       </div>
 
-      {/* Table Content */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
@@ -138,13 +132,14 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ data, isAdmin = false, onRe
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                       item.prediction === 'Fake Job' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
                     }`}>
+                      <i className={`fas ${item.prediction === 'Fake Job' ? 'fa-skull-crossbones' : 'fa-check'} mr-1.5`}></i>
                       {item.prediction}
                     </span>
                     <div className="text-[10px] text-slate-400 mt-1">{item.confidence_score}% Confidence</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className={`w-fit px-2 py-0.5 rounded text-[10px] font-bold ${
-                      item.risk_level === RiskLevel.HIGH ? 'bg-red-500 text-white' :
+                    <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                      item.risk_level === RiskLevel.HIGH ? 'bg-red-600 text-white shadow-sm shadow-red-200' :
                       item.risk_level === RiskLevel.MEDIUM ? 'bg-yellow-400 text-slate-900' :
                       'bg-green-500 text-white'
                     }`}>
@@ -152,11 +147,19 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ data, isAdmin = false, onRe
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    <button onClick={() => downloadPDF(item)} className="p-2 text-slate-400 hover:text-blue-600 transition" title="Download Report">
-                      <i className="fas fa-file-pdf"></i>
+                    <button 
+                      onClick={() => downloadPDF(item)} 
+                      className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
+                      title="Download PDF"
+                    >
+                      <i className="fas fa-file-pdf text-xs"></i>
                     </button>
-                    <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 transition" title="Delete">
-                      <i className="fas fa-trash-alt"></i>
+                    <button 
+                      onClick={() => handleDelete(item.id)} 
+                      className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all shadow-sm"
+                      title="Delete Entry"
+                    >
+                      <i className="fas fa-trash-alt text-xs"></i>
                     </button>
                   </td>
                 </tr>
