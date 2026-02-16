@@ -9,6 +9,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  password?: string;
   is_blocked: boolean;
   role: 'user' | 'admin';
   created_at: string;

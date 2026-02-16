@@ -20,6 +20,30 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
     { name: 'Contact Us', view: 'contact' },
   ];
 
+  const getInitials = (username: string) => {
+    if (!username) return '??';
+    
+    // Admin special case
+    if (username === 'admin') return 'AD';
+    
+    // Get the part before @ if it's an email
+    const namePart = username.split('@')[0];
+    
+    // Split by common delimiters (dot, underscore, hyphen)
+    const parts = namePart.split(/[\._-]/);
+    
+    if (parts.length >= 2) {
+      // Return first letter of first two parts (e.g. pravalika.palipe -> PP)
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    
+    // If it's a single word, return first two characters (e.g. pravalika -> PR)
+    // Or if the user specifically asked for "pravalikapalipe" to be "PP", 
+    // we can assume they might want initials from capitalization if it existed,
+    // but here we'll just take the first two chars for single words.
+    return namePart.substring(0, 2).toUpperCase();
+  };
+
   return (
     <nav className="fixed w-full z-50 glass-morphism shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,17 +80,23 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
               <div className="relative">
                 <button 
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-full hover:bg-slate-200 transition"
+                  className="flex items-center space-x-2 bg-blue-50 px-2.5 py-1.5 rounded-full hover:bg-blue-100 transition border border-blue-100 shadow-sm"
                 >
-                  <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px]">
-                    <i className="fas fa-user"></i>
+                  <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black tracking-tighter">
+                    {getInitials(user.username)}
                   </div>
-                  <span className="text-sm font-bold text-slate-700">{user.username}</span>
-                  <i className="fas fa-chevron-down text-[10px] text-slate-400"></i>
+                  <span className="text-xs font-bold text-slate-700 max-w-[150px] truncate">
+                    {user.username}
+                  </span>
+                  <i className={`fas fa-chevron-down text-[10px] text-slate-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`}></i>
                 </button>
 
                 {profileMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden py-1">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/50">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Signed in as</p>
+                      <p className="text-xs font-bold text-slate-700 truncate">{user.email}</p>
+                    </div>
                     {user.role === 'admin' && (
                       <button onClick={() => { onNavigate('admin'); setProfileMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-indigo-600 font-bold hover:bg-indigo-50">
                         <i className="fas fa-crown mr-2"></i> Admin Panel
@@ -118,6 +148,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
             ))}
             {user && (
               <>
+                <div className="px-3 py-2 mt-2 border-t border-slate-50">
+                   <div className="flex items-center space-x-3 mb-2">
+                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                       {getInitials(user.username)}
+                     </div>
+                     <span className="text-sm font-bold text-slate-700 truncate">{user.username}</span>
+                   </div>
+                </div>
                 <button onClick={() => { onNavigate('history'); setIsOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700">My History</button>
                 {user.role === 'admin' && <button onClick={() => { onNavigate('admin'); setIsOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-indigo-600">Admin Panel</button>}
                 <button onClick={() => { onLogout(); setIsOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600">Logout</button>

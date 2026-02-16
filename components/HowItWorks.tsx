@@ -25,7 +25,7 @@ const HowItWorks: React.FC = () => {
       icon: 'fa-clipboard-check',
       title: 'Get Result',
       desc: 'Receive a risk score and clear evidence-based explanations.',
-      topImage: 'https://cdn-icons-png.flaticon.com/512/4201/4201971.png'
+      topImage: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png'
     }
   ];
 
