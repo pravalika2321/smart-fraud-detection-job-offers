@@ -7,7 +7,7 @@ interface AuthPageProps {
   onLogin: (user: User) => void;
 }
 
-type AuthView = 'login' | 'signup' | 'forgot';
+type AuthView = 'login' | 'signup' | 'forgot' | 'admin-gate';
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [view, setView] = useState<AuthView>('login');
@@ -18,13 +18,29 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     email: '', 
     password: '', 
     confirmPassword: '',
-    forgotEmail: '' 
+    forgotEmail: '',
+    adminSecret: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const handleAdminAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const users = db.getUsers();
+    
+    // The "Secret" login logic
+    if (formData.adminSecret === 'admin123') {
+      const adminUser = users.find(u => u.username === 'admin')!;
+      db.setCurrentUser(adminUser);
+      onLogin(adminUser);
+    } else {
+      setError('Invalid Administrative Access Key.');
+    }
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -55,14 +71,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     const users = db.getUsers();
 
     if (view === 'login') {
-      // Admin special case
-      if (formData.email === 'admin@fraudguard.ai' && formData.password === 'admin123') {
-        const adminUser = users.find(u => u.username === 'admin')!;
-        db.setCurrentUser(adminUser);
-        onLogin(adminUser);
-        return;
-      }
-
       if (!validateEmail(formData.email)) {
         setError('Please enter a valid email address.');
         return;
@@ -173,6 +181,61 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition"
           >
             <i className="fas fa-arrow-left mr-2"></i> Back to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'admin-gate') {
+    return (
+      <div className="max-w-md mx-auto my-20 p-10 bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-800 animate-in fade-in slide-in-from-bottom-8 duration-500 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 animate-pulse"></div>
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 text-white shadow-2xl shadow-blue-900/50">
+            <i className="fas fa-user-shield text-3xl"></i>
+          </div>
+          <h2 className="text-2xl font-black text-white tracking-tighter uppercase">Administrative Gateway</h2>
+          <p className="text-slate-500 mt-2 text-xs font-bold uppercase tracking-widest">Authorized Personnel Only</p>
+        </div>
+
+        <form onSubmit={handleAdminAuth} className="space-y-6">
+          {error && (
+            <div className="p-4 bg-red-900/30 text-red-400 text-[10px] font-black uppercase rounded-xl border border-red-900/50 flex items-center">
+              <i className="fas fa-lock mr-2"></i>
+              {error}
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Secret Access Key</label>
+            <div className="relative">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 text-sm">
+                <i className="fas fa-terminal"></i>
+              </span>
+              <input 
+                required 
+                autoFocus
+                type="password" 
+                placeholder="••••••••••••"
+                className="w-full pl-12 pr-4 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-white font-mono placeholder-slate-700 transition-all"
+                value={formData.adminSecret}
+                onChange={e => setFormData({...formData, adminSecret: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-500 transition shadow-2xl shadow-blue-900/40 active:scale-95 transform">
+            Authenticate Session
+          </button>
+        </form>
+
+        <div className="mt-10 text-center">
+          <button 
+            onClick={() => { setView('login'); setError(''); setFormData({...formData, adminSecret: ''}); }} 
+            className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition"
+          >
+            <i className="fas fa-arrow-left mr-2"></i> Return to Public Login
           </button>
         </div>
       </div>
@@ -292,9 +355,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             >
               Forgot Password?
             </button>
-            <p className="text-[10px] text-slate-400 font-medium">
-              Admin: admin@fraudguard.ai / admin123
-            </p>
+            <button 
+              type="button"
+              onClick={() => setView('admin-gate')}
+              className="text-[10px] text-slate-400 font-bold hover:text-blue-600 transition flex items-center"
+            >
+              <i className="fas fa-user-gear mr-1.5"></i> Admin Access
+            </button>
           </div>
         )}
 
