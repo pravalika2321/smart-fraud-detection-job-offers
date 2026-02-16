@@ -29,6 +29,22 @@ export interface HistoryRecord {
   safety_tips: string[];
 }
 
+export interface ResumeAnalysisResult {
+  match_percentage: number;
+  missing_skills: string[];
+  matched_skills: string[];
+  suggestions: string[];
+  strength_score: number; // 1-10
+  rating: 'Low' | 'Medium' | 'High';
+}
+
+export interface ResumeHistoryRecord extends ResumeAnalysisResult {
+  id: string;
+  userId: string;
+  job_title: string;
+  created_at: string;
+}
+
 export interface JobInputData {
   title: string;
   company: string;

@@ -16,31 +16,16 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
   const links = [
     { name: 'Home', view: 'home' },
     { name: 'About Us', view: 'about' },
-    { name: 'How It Works', view: 'how-it-works' },
+    { name: 'Resume AI', view: 'resume-analyzer' },
     { name: 'Contact Us', view: 'contact' },
   ];
 
   const getInitials = (username: string) => {
     if (!username) return '??';
-    
-    // Admin special case
     if (username === 'admin') return 'AD';
-    
-    // Get the part before @ if it's an email
     const namePart = username.split('@')[0];
-    
-    // Split by common delimiters (dot, underscore, hyphen)
     const parts = namePart.split(/[\._-]/);
-    
-    if (parts.length >= 2) {
-      // Return first letter of first two parts (e.g. pravalika.palipe -> PP)
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    
-    // If it's a single word, return first two characters (e.g. pravalika -> PR)
-    // Or if the user specifically asked for "pravalikapalipe" to be "PP", 
-    // we can assume they might want initials from capitalization if it existed,
-    // but here we'll just take the first two chars for single words.
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return namePart.substring(0, 2).toUpperCase();
   };
 
@@ -53,7 +38,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
             <span className="text-xl font-bold text-slate-800 tracking-tight">FraudGuard</span>
           </div>
 
-          {/* Desktop Links */}
           <div className="hidden md:flex items-center space-x-6">
             {links.map((link) => (
               <button
@@ -106,7 +90,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
                       <i className="fas fa-clock-rotate-left mr-2"></i> My History
                     </button>
                     <button onClick={() => { onNavigate('analyze'); setProfileMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                      <i className="fas fa-magnifying-glass mr-2"></i> New Analysis
+                      <i className="fas fa-magnifying-glass mr-2"></i> Scan Job Offer
                     </button>
                     <hr className="my-1 border-slate-100" />
                     <button onClick={() => { onLogout(); setProfileMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
@@ -118,7 +102,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -130,7 +113,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-white border-t border-slate-100 animate-slideDown">
           <div className="px-2 pt-2 pb-3 space-y-1">
@@ -148,14 +130,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, user, onLogout
             ))}
             {user && (
               <>
-                <div className="px-3 py-2 mt-2 border-t border-slate-50">
-                   <div className="flex items-center space-x-3 mb-2">
-                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                       {getInitials(user.username)}
-                     </div>
-                     <span className="text-sm font-bold text-slate-700 truncate">{user.username}</span>
-                   </div>
-                </div>
                 <button onClick={() => { onNavigate('history'); setIsOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700">My History</button>
                 {user.role === 'admin' && <button onClick={() => { onNavigate('admin'); setIsOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-indigo-600">Admin Panel</button>}
                 <button onClick={() => { onLogout(); setIsOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600">Logout</button>
