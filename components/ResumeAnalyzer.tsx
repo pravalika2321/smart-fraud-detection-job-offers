@@ -47,7 +47,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
       };
       reader.readAsText(file);
     } else {
-      alert("Format not directly supported in browser text parsing yet, but Gemini will attempt OCR on images or you can paste the text.");
+      alert("Format not directly supported. Gemini will attempt OCR on images, or you can paste the text.");
     }
   };
 
@@ -87,7 +87,8 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
       });
       onComplete?.();
     } catch (err) {
-      alert("Analysis failed. Please ensure your inputs are clear.");
+      console.error(err);
+      alert("Analysis failed. Please check your internet connection or try a different input.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
         <div className="flex flex-col items-center space-y-2 text-slate-500 font-bold uppercase tracking-widest text-xs">
            <span className="animate-pulse">Extracting Semantic Entities</span>
            <span className="animate-pulse delay-150">Calculating ATS Vector Distance</span>
-           <span className="animate-pulse delay-300">Generating Optimization Roadmaps</span>
+           <span className="animate-pulse delay-300">Checking Recruitment Authenticity</span>
         </div>
       </div>
     );
@@ -126,6 +127,28 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
 
     return (
       <div className="max-w-7xl mx-auto py-12 px-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        
+        {/* Fraud Warning / Genuine Badge */}
+        <div className={`mb-8 p-6 rounded-3xl border-2 flex items-center justify-between shadow-lg ${result.is_genuine_job ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800 animate-pulse'}`}>
+           <div className="flex items-center space-x-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${result.is_genuine_job ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                <i className={`fas ${result.is_genuine_job ? 'fa-check-double' : 'fa-triangle-exclamation'}`}></i>
+              </div>
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tight">
+                  {result.is_genuine_job ? 'Authentic Job Offer' : 'Potential Recruitment Fraud'}
+                </h3>
+                <p className="text-sm font-medium opacity-80">{result.fraud_verdict}</p>
+              </div>
+           </div>
+           <div className="text-right hidden sm:block">
+              <div className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-60">Risk Factor</div>
+              <div className={`text-2xl font-black ${result.fraud_risk_score > 50 ? 'text-red-600' : 'text-green-600'}`}>
+                {result.fraud_risk_score}%
+              </div>
+           </div>
+        </div>
+
         {/* Results Header Dashboard */}
         <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden mb-12">
            <div className="bg-slate-900 p-10 md:p-16 text-white relative overflow-hidden">
@@ -290,7 +313,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
               <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight">
                 AI Resume Optimizer
               </h2>
-              <p className="text-slate-500 font-medium mt-2">Industrial-grade ATS scoring and content optimization.</p>
+              <p className="text-slate-500 font-medium mt-2">Industrial-grade ATS scoring and Trust verification.</p>
            </div>
            <div className="flex -space-x-3">
               {[1, 2, 3].map(i => (
@@ -411,7 +434,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
                  <i className="fas fa-wand-magic-sparkles mr-4"></i> Optimize My Career Profile
               </button>
               <p className="text-center text-slate-400 text-xs mt-6 font-medium">
-                Our AI process follows high-security PII protection and industrial-grade ATS benchmarks.
+                Our AI process simultaneously scans for recruitment fraud and provides ATS-industrial benchmarks.
               </p>
            </div>
         </form>

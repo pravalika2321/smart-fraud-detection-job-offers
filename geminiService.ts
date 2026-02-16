@@ -58,12 +58,16 @@ const RESUME_RESPONSE_SCHEMA = {
           resource: { type: Type.STRING }
         }
       } 
-    }
+    },
+    is_genuine_job: { type: Type.BOOLEAN, description: "Whether the job description appears to be a genuine recruitment offer" },
+    fraud_risk_score: { type: Type.NUMBER, description: "Risk percentage that the JD is a scam (0-100)" },
+    fraud_verdict: { type: Type.STRING, description: "Brief explanation of the fraud assessment" }
   },
   required: [
     "ats_score", "match_percentage", "readability_score", "keyword_density", 
     "matched_skills", "missing_skills", "suggested_keywords", "optimized_summary", 
-    "improved_bullets", "strength_score", "rating", "learning_roadmap"
+    "improved_bullets", "strength_score", "rating", "learning_roadmap",
+    "is_genuine_job", "fraud_risk_score", "fraud_verdict"
   ]
 };
 
@@ -95,24 +99,13 @@ export async function analyzeResume(
   return withRetry(async () => {
     const ai = getAI();
     const systemInstruction = `
-      You are an Industrial-Grade ATS Specialist and Senior HR Recruiter. 
-      Analyze the provided resume against the job description with 95%+ accuracy.
+      You are an Industrial-Grade ATS Specialist, Senior HR Recruiter, AND Cyber Security Analyst.
       
-      SCORING LOGIC:
-      - 30% Keyword Match (JD exact phrases)
-      - 25% Standard Sections (Contact, Summary, Skills, Experience, Education)
-      - 20% Formatting (Standard structure)
-      - 15% File Format (PDF/Doc simulation)
-      - 10% Length (1-2 pages)
+      CORE TASKS:
+      1. ATS Analysis: Analyze the resume against the JD (keywords, formatting, skills).
+      2. Fraud Detection: Scrutinize the Job Description for scam markers (suspicious URLs, unusual salary, phishing language, generic tasks).
       
-      TASKS:
-      1. Extract keywords and calculate match.
-      2. Suggest specific missing skills.
-      3. Generate a killer, ATS-optimized summary.
-      4. Rewrite weak bullets into "Quantified Achievement" format.
-      5. Provide learning resources (Coursera/Udemy/LinkedIn) for missing skills.
-      
-      Return the response strictly as JSON.
+      Return a combined JSON analysis.
     `;
     
     const parts: any[] = [{ text: `RESUME SOURCE: ${resumeText}\n\nJOB DESCRIPTION SOURCE: ${jobDesc}` }];

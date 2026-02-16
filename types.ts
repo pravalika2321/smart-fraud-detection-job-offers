@@ -44,6 +44,10 @@ export interface ResumeAnalysisResult {
   strength_score: number; // 1-10
   rating: 'Poor' | 'Fair' | 'Good' | 'Excellent';
   learning_roadmap: { skill: string; resource: string }[];
+  // Integrated Fraud Assessment
+  is_genuine_job: boolean;
+  fraud_risk_score: number;
+  fraud_verdict: string;
 }
 
 export interface ResumeHistoryRecord extends ResumeAnalysisResult {
