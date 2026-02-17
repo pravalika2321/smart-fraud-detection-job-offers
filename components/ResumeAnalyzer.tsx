@@ -78,11 +78,13 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ userId, onComplete }) =
       const analysis = await analyzeResume(resumeText, jobDesc, resumeImage || undefined, jdImage || undefined);
       setResult(analysis);
       
+      // Fix: Added missing 'category' property to satisfy the ResumeHistoryRecord type requirements.
       db.saveResumeHistory({
         ...analysis,
         id: Math.random().toString(36).substr(2, 9),
         userId,
         job_title: jobTitle,
+        category: db.getCategoryByRisk(analysis.fraud_risk_score),
         created_at: new Date().toISOString()
       });
       onComplete?.();

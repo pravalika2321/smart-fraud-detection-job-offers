@@ -5,6 +5,8 @@ export enum RiskLevel {
   HIGH = 'High'
 }
 
+export type RecordCategory = 'fake' | 'genuine' | 'suspicious';
+
 export interface User {
   id: string;
   username: string;
@@ -26,6 +28,7 @@ export interface HistoryRecord {
   confidence_score: number;
   risk_rate: number;
   risk_level: RiskLevel;
+  category: RecordCategory;
   created_at: string;
   explanations: string[];
   safety_tips: string[];
@@ -44,7 +47,6 @@ export interface ResumeAnalysisResult {
   strength_score: number; // 1-10
   rating: 'Poor' | 'Fair' | 'Good' | 'Excellent';
   learning_roadmap: { skill: string; resource: string }[];
-  // Integrated Fraud Assessment
   is_genuine_job: boolean;
   fraud_risk_score: number;
   fraud_verdict: string;
@@ -54,8 +56,21 @@ export interface ResumeHistoryRecord extends ResumeAnalysisResult {
   id: string;
   userId: string;
   job_title: string;
+  category: RecordCategory;
   resume_filename?: string;
   resume_format?: string;
+  created_at: string;
+}
+
+export interface InterviewModule {
+  id: string;
+  userId: string;
+  role: string;
+  experience_level: string;
+  technical_questions: { question: string; answer: string }[];
+  hr_questions: { question: string; answer: string }[];
+  preparation_roadmap: { day: string; task: string }[];
+  resources: { name: string; url: string }[];
   created_at: string;
 }
 
@@ -68,7 +83,7 @@ export interface JobInputData {
   website: string;
   description: string;
   sourceType: 'manual' | 'email' | 'file' | 'screenshot';
-  screenshot?: string; // Base64 encoded image
+  screenshot?: string; 
 }
 
 export interface AnalysisResult {

@@ -1,8 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { JobInputData, AnalysisResult, ChatMessage, ResumeAnalysisResult } from "./types";
+import { JobInputData, AnalysisResult, ChatMessage, ResumeAnalysisResult, InterviewModule } from "./types";
 
-// Helper for exponential backoff retries
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let delay = 1500;
   for (let i = 0; i < maxRetries; i++) {
@@ -11,10 +10,8 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
     } catch (error: any) {
       const isRateLimit = error.message?.includes('429') || error.message?.toLowerCase().includes('exhausted');
       if (i === maxRetries - 1 || !isRateLimit) throw error;
-      
-      console.warn(`Rate limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2; // Exponential increase
+      delay *= 2;
     }
   }
   throw new Error("Max retries exceeded for this request.");
@@ -38,37 +35,80 @@ const FRAUD_RESPONSE_SCHEMA = {
 const RESUME_RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    ats_score: { type: Type.NUMBER, description: "Total ATS compatibility score (0-100)" },
-    match_percentage: { type: Type.NUMBER, description: "JD match percentage (0-100)" },
-    readability_score: { type: Type.NUMBER, description: "Flesch-Kincaid style readability (0-100)" },
-    keyword_density: { type: Type.NUMBER, description: "Percentage of key JD terms present" },
+    ats_score: { type: Type.NUMBER },
+    match_percentage: { type: Type.NUMBER },
+    readability_score: { type: Type.NUMBER },
+    keyword_density: { type: Type.NUMBER },
     matched_skills: { type: Type.ARRAY, items: { type: Type.STRING } },
     missing_skills: { type: Type.ARRAY, items: { type: Type.STRING } },
     suggested_keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-    optimized_summary: { type: Type.STRING, description: "AI-generated 3-4 line professional summary tailored to the role" },
-    improved_bullets: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Experience bullets optimized into Action Verb -> Metric -> Result format" },
-    strength_score: { type: Type.NUMBER, description: "Overall profile strength (1-10)" },
-    rating: { type: Type.STRING, description: "Poor, Fair, Good, or Excellent" },
+    optimized_summary: { type: Type.STRING },
+    improved_bullets: { type: Type.ARRAY, items: { type: Type.STRING } },
+    strength_score: { type: Type.NUMBER },
+    rating: { type: Type.STRING },
     learning_roadmap: { 
       type: Type.ARRAY, 
       items: { 
         type: Type.OBJECT, 
-        properties: {
-          skill: { type: Type.STRING },
-          resource: { type: Type.STRING }
-        }
+        properties: { skill: { type: Type.STRING }, resource: { type: Type.STRING } }
       } 
     },
-    is_genuine_job: { type: Type.BOOLEAN, description: "Whether the job description appears to be a genuine recruitment offer" },
-    fraud_risk_score: { type: Type.NUMBER, description: "Risk percentage that the JD is a scam (0-100)" },
-    fraud_verdict: { type: Type.STRING, description: "Brief explanation of the fraud assessment" }
+    is_genuine_job: { type: Type.BOOLEAN },
+    fraud_risk_score: { type: Type.NUMBER },
+    fraud_verdict: { type: Type.STRING }
   },
-  required: [
-    "ats_score", "match_percentage", "readability_score", "keyword_density", 
-    "matched_skills", "missing_skills", "suggested_keywords", "optimized_summary", 
-    "improved_bullets", "strength_score", "rating", "learning_roadmap",
-    "is_genuine_job", "fraud_risk_score", "fraud_verdict"
-  ]
+  required: ["ats_score", "match_percentage", "readability_score", "keyword_density", "matched_skills", "missing_skills", "suggested_keywords", "optimized_summary", "improved_bullets", "strength_score", "rating", "learning_roadmap", "is_genuine_job", "fraud_risk_score", "fraud_verdict"]
+};
+
+const INTERVIEW_PREP_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    technical_questions: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          question: { type: Type.STRING },
+          answer: { type: Type.STRING, description: "Detailed model answer" }
+        },
+        required: ["question", "answer"]
+      }
+    },
+    hr_questions: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          question: { type: Type.STRING },
+          answer: { type: Type.STRING, description: "STAR method behavioral answer" }
+        },
+        required: ["question", "answer"]
+      }
+    },
+    preparation_roadmap: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          day: { type: Type.STRING },
+          task: { type: Type.STRING }
+        },
+        required: ["day", "task"]
+      }
+    },
+    resources: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          url: { type: Type.STRING }
+        },
+        required: ["name", "url"]
+      }
+    }
+  },
+  required: ["technical_questions", "hr_questions", "preparation_roadmap", "resources"]
 };
 
 export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResult> {
@@ -80,7 +120,6 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
     if (data.screenshot) {
       parts.push({ inlineData: { mimeType: "image/png", data: data.screenshot.split(',')[1] || data.screenshot } });
     }
-
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: { parts },
@@ -90,37 +129,30 @@ export async function analyzeJobOffer(data: JobInputData): Promise<AnalysisResul
   });
 }
 
-export async function analyzeResume(
-  resumeText: string, 
-  jobDesc: string, 
-  resumeImage?: string, 
-  jdImage?: string
-): Promise<ResumeAnalysisResult> {
+export async function analyzeResume(resumeText: string, jobDesc: string, resumeImage?: string, jdImage?: string): Promise<ResumeAnalysisResult> {
   return withRetry(async () => {
     const ai = getAI();
-    const systemInstruction = `
-      You are an Industrial-Grade ATS Specialist, Senior HR Recruiter, AND Cyber Security Analyst.
-      
-      CORE TASKS:
-      1. ATS Analysis: Analyze the resume against the JD (keywords, formatting, skills).
-      2. Fraud Detection: Scrutinize the Job Description for scam markers (suspicious URLs, unusual salary, phishing language, generic tasks).
-      
-      Return a combined JSON analysis.
-    `;
-    
-    const parts: any[] = [{ text: `RESUME SOURCE: ${resumeText}\n\nJOB DESCRIPTION SOURCE: ${jobDesc}` }];
-    
-    if (resumeImage) {
-      parts.push({ inlineData: { mimeType: "image/png", data: resumeImage.split(',')[1] || resumeImage } });
-    }
-    if (jdImage) {
-      parts.push({ inlineData: { mimeType: "image/png", data: jdImage.split(',')[1] || jdImage } });
-    }
-
+    const systemInstruction = `You are an Industrial-Grade ATS Specialist, Senior HR Recruiter, AND Cyber Security Analyst. Scrutinize resume-JD match and fraud markers.`;
+    const parts: any[] = [{ text: `RESUME: ${resumeText}\n\nJD: ${jobDesc}` }];
+    if (resumeImage) parts.push({ inlineData: { mimeType: "image/png", data: resumeImage.split(',')[1] } });
+    if (jdImage) parts.push({ inlineData: { mimeType: "image/png", data: jdImage.split(',')[1] } });
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: { parts },
       config: { systemInstruction, responseMimeType: "application/json", responseSchema: RESUME_RESPONSE_SCHEMA }
+    });
+    return JSON.parse(response.text.trim());
+  });
+}
+
+export async function generateInterviewPrep(role: string, level: string): Promise<any> {
+  return withRetry(async () => {
+    const ai = getAI();
+    const systemInstruction = `You are a Senior Technical Recruiter at a Fortune 500 company. Generate a comprehensive interview preparation module for a specific role and experience level. Include technical questions, behavioral HR questions using the STAR method, and a preparation roadmap.`;
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Generate interview prep for: ROLE: ${role}, LEVEL: ${level}`,
+      config: { systemInstruction, responseMimeType: "application/json", responseSchema: INTERVIEW_PREP_SCHEMA }
     });
     return JSON.parse(response.text.trim());
   });

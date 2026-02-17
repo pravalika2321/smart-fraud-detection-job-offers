@@ -2,6 +2,7 @@
 import React from 'react';
 import { AnalysisResult, RiskLevel } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { db } from '../db';
 
 interface ResultsViewProps {
   loading: boolean;
@@ -12,7 +13,7 @@ interface ResultsViewProps {
   onReset: () => void;
 }
 
-const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuotaError, onSelectKey, onReset }) => {
+const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuotaError, onReset, onSelectKey }) => {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 md:py-24 text-center">
@@ -60,34 +61,28 @@ const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuo
             {isQuotaError ? "Back to Scan" : "Try Again"}
           </button>
         </div>
-        
-        {isQuotaError && (
-          <p className="mt-6 text-[10px] text-slate-400 max-w-sm mx-auto">
-            Note: Using your own key from a paid GCP project ensures 100% uptime and avoids shared traffic limits.
-          </p>
-        )}
       </div>
     );
   }
 
   if (!result) return null;
 
-  const isDanger = result.result === 'Fake Job' || result.risk_level === RiskLevel.HIGH;
+  // Use Centralized Verdict logic for consistent UI
+  const finalVerdict = db.getVerdictByRisk(result.risk_rate);
+  const isDanger = finalVerdict === 'Fake Job';
+  const isGenuine = finalVerdict === 'Genuine Job';
   
   const chartData = [
     { name: 'Risk', value: result.risk_rate },
     { name: 'Safety', value: 100 - result.risk_rate },
   ];
   
-  const COLORS = isDanger ? ['#dc2626', '#f1f5f9'] : ['#16a34a', '#f1f5f9'];
+  const COLORS = isDanger ? ['#dc2626', '#f1f5f9'] : isGenuine ? ['#16a34a', '#f1f5f9'] : ['#facc15', '#f1f5f9'];
 
-  const getRiskBadgeStyle = (level: RiskLevel) => {
-    switch (level) {
-      case RiskLevel.LOW: return 'text-green-700 bg-green-50 border-green-200';
-      case RiskLevel.MEDIUM: return 'text-yellow-700 bg-yellow-50 border-yellow-200';
-      case RiskLevel.HIGH: return 'text-red-700 bg-red-50 border-red-200';
-      default: return 'text-slate-700 bg-slate-50 border-slate-200';
-    }
+  const getRiskBadgeStyle = (risk: number) => {
+    if (risk >= 70) return 'text-red-700 bg-red-50 border-red-200';
+    if (risk <= 40) return 'text-green-700 bg-green-50 border-green-200';
+    return 'text-yellow-700 bg-yellow-50 border-yellow-200';
   };
 
   const statusImage = isDanger 
@@ -98,16 +93,16 @@ const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuo
     <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6 md:space-y-8">
-          <div className={`bg-white rounded-3xl shadow-2xl overflow-hidden border-2 ${isDanger ? 'border-red-100' : 'border-slate-50'}`}>
+          <div className={`bg-white rounded-3xl shadow-2xl overflow-hidden border-2 ${isDanger ? 'border-red-100' : isGenuine ? 'border-green-100' : 'border-yellow-100'}`}>
             <div className="h-48 md:h-56 w-full overflow-hidden relative">
               <img src={statusImage} alt="Status Visual" className="w-full h-full object-cover grayscale-[0.2]" />
-              <div className={`absolute inset-0 bg-gradient-to-t ${isDanger ? 'from-red-600/95 via-red-600/80' : 'from-green-600/95 via-green-600/80'} to-transparent`}></div>
+              <div className={`absolute inset-0 bg-gradient-to-t ${isDanger ? 'from-red-600/95 via-red-600/80' : isGenuine ? 'from-green-600/95 via-green-600/80' : 'from-yellow-600/95 via-yellow-600/80'} to-transparent`}></div>
               <div className="absolute bottom-6 left-6 right-6">
-                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 border ${getRiskBadgeStyle(result.risk_level)} shadow-lg`}>
-                  {result.risk_level} Risk Level
+                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 border ${getRiskBadgeStyle(result.risk_rate)} shadow-lg`}>
+                  {result.risk_rate >= 70 ? 'High' : result.risk_rate <= 40 ? 'Low' : 'Medium'} Risk Level
                 </span>
                 <h2 className="text-3xl md:text-5xl font-black text-white drop-shadow-md leading-tight">
-                  {result.result}
+                  {finalVerdict}
                 </h2>
               </div>
             </div>
@@ -117,7 +112,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuo
                 <div className="text-center sm:text-left">
                   <h3 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">AI Final Verdict</h3>
                   <p className="text-sm md:text-base text-slate-500 mt-2">
-                    Analysis completed with <span className={`font-bold ${isDanger ? 'text-red-600' : 'text-green-600'}`}>{result.confidence_score}%</span> confidence.
+                    Analysis completed with <span className={`font-bold ${isDanger ? 'text-red-600' : isGenuine ? 'text-green-600' : 'text-yellow-600'}`}>{result.confidence_score}%</span> confidence.
                   </p>
                 </div>
                 <div className="w-40 h-40 md:w-48 md:h-48 relative flex-shrink-0">
@@ -142,7 +137,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuo
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                      <div className="text-center">
-                       <div className={`text-2xl md:text-3xl font-black ${isDanger ? 'text-red-600' : 'text-green-600'}`}>{result.risk_rate}%</div>
+                       <div className={`text-2xl md:text-3xl font-black ${isDanger ? 'text-red-600' : isGenuine ? 'text-green-600' : 'text-yellow-600'}`}>{result.risk_rate}%</div>
                        <div className="text-[8px] md:text-[10px] text-slate-400 font-black uppercase tracking-widest">Risk Factor</div>
                      </div>
                   </div>
@@ -151,14 +146,14 @@ const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuo
 
               <div className="border-t border-slate-100 pt-8 md:pt-10">
                 <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center">
-                  <i className={`fas ${isDanger ? 'fa-triangle-exclamation text-red-600' : 'fa-list-check text-green-600'} mr-3`}></i> 
+                  <i className={`fas ${isDanger ? 'fa-triangle-exclamation text-red-600' : isGenuine ? 'fa-list-check text-green-600' : 'fa-circle-info text-yellow-600'} mr-3`}></i> 
                   Analysis Findings
                 </h3>
                 <div className="space-y-4">
                   {result.explanations.map((exp, i) => (
-                    <div key={i} className={`flex items-start space-x-4 p-5 rounded-2xl border ${isDanger ? 'bg-red-50/50 border-red-100' : 'bg-green-50/50 border-green-100'}`}>
-                      <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${isDanger ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
-                        <i className={`fas ${isDanger ? 'fa-times' : 'fa-check'} text-[10px]`}></i>
+                    <div key={i} className={`flex items-start space-x-4 p-5 rounded-2xl border ${isDanger ? 'bg-red-50/50 border-red-100' : isGenuine ? 'bg-green-50/50 border-green-100' : 'bg-yellow-50/50 border-yellow-100'}`}>
+                      <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${isDanger ? 'bg-red-600 text-white' : isGenuine ? 'bg-green-600 text-white' : 'bg-yellow-600 text-white'}`}>
+                        <i className={`fas ${isDanger ? 'fa-times' : isGenuine ? 'fa-check' : 'fa-exclamation'} text-[10px]`}></i>
                       </div>
                       <p className="text-slate-700 leading-relaxed text-sm font-medium">{exp}</p>
                     </div>
@@ -206,13 +201,6 @@ const ResultsView: React.FC<ResultsViewProps> = ({ loading, result, error, isQuo
                   <i className="fas fa-plus mr-3"></i> New Analysis
                 </button>
                </div>
-             </div>
-             
-             <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100">
-                <p className="text-[11px] text-blue-800 font-bold leading-relaxed">
-                  <i className="fas fa-info-circle mr-1.5"></i>
-                  FraudGuard AI continuously learns from global recruitment data to provide these insights.
-                </p>
              </div>
           </div>
         </div>
